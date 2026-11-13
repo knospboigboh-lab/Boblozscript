@@ -9,7 +9,15 @@
 -- ===================================================================
 local P,UIS,RS,L,H,TS,CG=game:GetService("Players"),game:GetService("UserInputService"),game:GetService("RunService"),game:GetService("Lighting"),game:GetService("HttpService"),game:GetService("TweenService"),game:GetService("CoreGui")
 local lp,cam=P.LocalPlayer,workspace.CurrentCamera
-local par=(gethui and gethui()) or CG
+-- Executor-safe GUI parent selection: gethui can be missing or throw in some builds.
+local par=CG
+pcall(function()
+  if type(gethui)=="function" then
+    local h=gethui()
+    if h then par=h end
+  end
+end)
+if not par then par=lp:WaitForChild("PlayerGui") end
 pcall(function() if getgenv and getgenv().NEBULA_UNLOAD then getgenv().NEBULA_UNLOAD() end end)
 pcall(function() local o=par:FindFirstChild("Nebula") if o then o:Destroy() end end)
 
@@ -1055,7 +1063,17 @@ pcall(function() getgenv().NEBULA_UNLOAD=unload end)
 -- ===================================================================
 --  START
 -- ===================================================================
-selectTab(1)
-post() crosshair() rebuildAll()
-setOpen(true)
-notify("NEBULA","Loaded - "..F.MenuKey.." or the N button")
+-- Keep optional initialization failures from preventing the menu from opening.
+local function initStep(label,fn)
+  local ok,err=pcall(fn)
+  if not ok then warn("[Nebula] "..label.." failed: "..tostring(err)) end
+  return ok
+end
+initStep("select tab",function() selectTab(1) end)
+initStep("post effects",post)
+initStep("crosshair",crosshair)
+initStep("rebuild visuals",rebuildAll)
+initStep("open menu",function() setOpen(true) end)
+initStep("notification",function()
+  notify("NEBULA","Loaded - "..tostring(F.MenuKey or "RightShift").." or the N button")
+end)
