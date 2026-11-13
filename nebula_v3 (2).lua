@@ -997,4 +997,65 @@ con(RS.RenderStepped,function(dt)
     for i,d in ipairs(depth) do d.Position=UDim2.fromOffset(-i*5+px*i*2.2,-i*5+12+py*i*2.2) end
     pacc=pacc+dt
     if pacc>.033 then
-      if F.Particles then safe("particles",stepParticles,pacc) end
+      if F.Particles then safe("particles",stepParticles,pacc) end      cv.Visible=F.Particles pacc=0
+    end
+    if PV.on and PV.model then
+      PV.model:PivotTo(CFrame.new(0,0,0)*CFrame.Angles(0,t*.8,0))
+      if t-PV.lt>.1 then
+        PV.lt=t
+        local hpf=.55+.4*math.sin(t*.9)
+        paint(PV.e,{name=lp.DisplayName,hpf=hpf,hp=hpf*100,dist=42,tool="Sword",col=espCol(nil,Color3.fromHSV(t*.2%1,.8,1))})
+      end
+    end
+  end
+
+  acc=acc+dt
+  if acc>.25 then
+    acc=0
+    wm.Visible=F.WM
+    wT.Text=F.WMTitle
+    local ping=0 pcall(function() ping=math.floor(lp:GetNetworkPing()*1000) end)
+    wF.Visible=F.WMFps wF.Text=string.format("%d fps",fps)
+    wP.Visible=F.WMPing wP.Text=ping.." ms"
+    wC.Visible=F.WMTime wC.Text=os.date("%H:%M")
+    ap.Visible=F.ActiveList
+    local lines,col={}, hex(A1)
+    for _,v in ipairs(FL) do if F[v[1]] then lines[#lines+1]='<font color="'..col..'">'..v[2]..'</font>' end end
+    apL.Text=#lines>0 and table.concat(lines,"\n") or '<font color="#808090">none</font>'
+  end
+  racc=racc+dt
+  if racc>.1 then racc=0 if F.RainbowUI then setAccent(Color3.fromHSV((t*.08)%1,.6,1)) end end
+  lacc=lacc+dt
+  if lacc>1 then lacc=0 rescale() end
+end)
+
+con(UIS.InputBegan,function(i,g)
+  if g or i.UserInputType~=Enum.UserInputType.Keyboard then return end
+  local ok,k=pcall(function() return Enum.KeyCode[F.MenuKey] end)
+  if ok and i.KeyCode==k then setOpen(not open) end
+end)
+
+-- ===================================================================
+--  UNLOAD
+-- ===================================================================
+unload=function()
+  for _,c in ipairs(C) do pcall(function() c:Disconnect() end) end
+  for p in pairs(E) do killESP(p) end
+  for k in pairs(fx) do clr(k) end
+  F.SelfChams=false pcall(selfApply)
+  for _,k in ipairs{"Brightness","GlobalShadows","Ambient","OutdoorAmbient","FogEnd","FogStart","ClockTime","ExposureCompensation"} do rel(k) end
+  if AP.fov then cam.FieldOfView=O.fov end
+  for _,n in ipairs{"NB_Bloom","NB_CC","NB_Blur","NB_Sun"} do local o=L:FindFirstChild(n) if o then o:Destroy() end end
+  pcall(function() FXF:Destroy() end)
+  pcall(function() ui:Destroy() end)
+  pcall(function() getgenv().NEBULA_UNLOAD=nil end)
+end
+pcall(function() getgenv().NEBULA_UNLOAD=unload end)
+
+-- ===================================================================
+--  START
+-- ===================================================================
+selectTab(1)
+post() crosshair() rebuildAll()
+setOpen(true)
+notify("NEBULA","Loaded - "..F.MenuKey.." or the N button")
